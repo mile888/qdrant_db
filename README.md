@@ -22,13 +22,14 @@ poetry install
 ## Set-up docker
 Set-up qdrant docker
 ```
-poetry install 
+docker pull qdrant/qdrant
 ```
 
 Run docker
 ```
-poetry install 
+docker run -p 6333:6333 -v $(pwd)/qdrant_storage_volume:/qdrant/storage:z qdrant/qdrant
 ```
 
 ## Example
+Use vector_db/qdrant_db.py scrpit for working.
 Use vector_db/test.ipynb file as example how to prepare dataset, create qdrant collection and perform a search.
