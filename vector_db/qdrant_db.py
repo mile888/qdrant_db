@@ -3,6 +3,7 @@ from qdrant_client import QdrantClient
 from langchain.embeddings import HuggingFaceBgeEmbeddings
 from langchain_qdrant import FastEmbedSparse, RetrievalMode
 from langchain_qdrant.qdrant import QdrantVectorStore
+from qdrant_client.http import models
 from qdrant_client.http.models import Distance
 from typing import List, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -11,13 +12,22 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class VectorDatabaseManager:
     """
-    Description
+    embedding_model: Path of the pre-trained Huggingface embedding model used for generating dense embeddings;
+    sparse_model: Path of the model used to produce sparse embeddings. 
+                  The default value is specified as 'Qdrant/bm25', which is a common choice for sparse representations;
+    metric: The distance metric employed for comparing vectors. 
+            The default metric is 'cosine', the user can choose among four metrics ['cosine', 'euclid', 'dot', 'manhattan'];
+    device: The computing device used for model inference. 
+            It can be set to ['cpu', 'cuda', 'mps'];
+    location: The URL endpoint for the Qdrant service.
+    threads: The number of threads to utilize for concurrent processing of requests. 
+             The default is 4;
     """
 
     def __init__(self, 
                  embedding_model: str,
+                 sparse_model: str = 'Qdrant/bm25',
                  metric: str = 'cosine', 
-                 sparse_model: str = 'Qdrant/bm25', 
                  device: str = 'cpu', 
                  location: str = 'http://localhost:6333',
                  threads: int = 4):
@@ -56,6 +66,12 @@ class VectorDatabaseManager:
     def create_vector_database(self, 
                                data: List[dict], 
                                collection_name: str): 
+        '''
+        data: List of dict data to be collected in the database.
+              The 'content' field is the context to be embedded in the vector.
+              The other fields are metadata;
+        collection_name: Name of the collection in the vector database where vectors will be stored 
+        '''
         
         print("Creating vectors...")
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
@@ -82,7 +98,14 @@ class VectorDatabaseManager:
                                collection_name: str,
                                retrval: str, 
                                k: int = 4) -> List[dict]:
-        
+        '''
+        query: The query you are sending to the vector database;
+        collection_name: The name of the collection you want to search;
+        retrval: The way you want to search.
+                 The default is 'hybrid', the user can choose between ['hybrid', 'dense', 'sparse'];
+        k: Number of best vectors to retrieve from the database
+        '''
+
         retrival_mapping = {
             'dense': RetrievalMode.DENSE,
             'sparse': RetrievalMode.SPARSE,
@@ -114,7 +137,7 @@ class VectorDatabaseManager:
             })
 
         return best_matches
-    
+
 
     def process_title_and_id(self, query, collection_name, retrval, k):
             best_match = self.vector_database_search(query, collection_name, retrval, k)
@@ -126,7 +149,13 @@ class VectorDatabaseManager:
                                     collection_name: str,
                                     retrval: str, 
                                     k: int = 4) -> List:
-    
+        '''
+        query: The query you are sending to the vector database;
+        collection_name: The name of the collection you want to search;
+        retrval: The way you want to search.
+                 The default is 'hybrid', the user can choose between ['hybrid', 'dense', 'sparse'];
+        k: Number of best vectors to retrieve from the database
+        '''
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             futures = {executor.submit(self.process_title_and_id, query, collection_name, retrval, k): query for query in list_of_query}
