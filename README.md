@@ -1,5 +1,4 @@
-# qdrant
-Qdrant - LangChain
+# Qdrant - LangChain
 
 ## Installation
 Clone this repository by:
